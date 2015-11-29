@@ -1,5 +1,6 @@
 import java.awt.Color;
 import java.awt.Font;
+import java.text.DecimalFormat;
 
 //import java.awt.color.*;
 
@@ -79,15 +80,17 @@ public class DrawingBoard {
     private void drawSingleGridSpaceValue(int row, int col) {
         StdDraw.setFont(this.valueFont);
         StdDraw.setPenColor(StdDraw.BLACK);
-        double value = this.gridWorld.get(col, row).getReward();
+        double value = this.gridWorld.get(col, row).utility;
+        DecimalFormat df = new DecimalFormat("#.00");
+        String val = df.format(value);
 
         GridSquare square = gridWorld.get(col, row);
-        if (square.getReward() != -.04 && square.getReward() != 0) {
-            StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, ""+ value);
-        } else if (square.isWall()) {
+        if (square.isWall()) {
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, "WALL");
         } else if (square == gridWorld.getStartingSquare()){
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, "START");
+        } else {
+            StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, ""+ val);
         }
     }
 
