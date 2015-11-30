@@ -8,7 +8,10 @@ public class GridWorld {
 
     private GridSquare start;
     private GridSquare grid[][];
-    private boolean rewardsTerminal;
+
+    // Note that nodes are considered actions. A node we will move to is indicative of the action we are trying
+    //  to take.
+    private GridSquare policy[][]; // The node we will attempt to move from from node at x, y
 
     public GridSquare[][] getGridWorld() {
         return grid;
@@ -26,27 +29,28 @@ public class GridWorld {
 
     // Constructs the gridworld as defined in the mp
     public GridWorld(boolean rewardsTerminal, boolean valueIteration) {
-        this.rewardsTerminal = rewardsTerminal;
         grid = new GridSquare[6][6];
+        policy = new GridSquare[6][6];
+
         for (int y = 0; y < 6; y++) {
             for (int x = 0; x < 6; x++) {
 
                 // Setting up the walls, rewards, and negative rewards.
                 GridSquare square = new GridSquare(-0.04, false, false, x, y); // default to -.04 square
                 if (x == 1 && y == 0) {
-                    square = new GridSquare(-1, false, false, x, y);
-                } else if (x == 3 && ((y >= 1 && y <= 3) || y == 5)) { // y 1-3 and 5
+                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
+                } else if (x == 3 && ((y >= 1 && y <= 3) || y == 5)) { // y 1-3 and 5, all walls
                     square = new GridSquare(0, false, true, x, y); // wall
                 } else if (x == 0 && y == 5) {
-                    square = new GridSquare(1, rewardsTerminal, false, x, y); // should be terminal if rewardsTerminal
+                    square = new GridSquare(1, rewardsTerminal, false, x, y); // rewardSquare
                 } else if (x == 1 && y == 5) {
-                    square = new GridSquare(-1, false, false, x, y);
+                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
                 } else if (x == 4 && y == 1) {
-                    square = new GridSquare(-1, false, false, x, y);
+                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
                 } else if ((x == 4 || x == 5) && y == 5) {
                     square = new GridSquare(0, false, true, x, y); // wall
                 } else if (x == 5 && y == 2) {
-                    square = new GridSquare(3, rewardsTerminal, false, x, y); // should be terminal if rewardsTerminal
+                    square = new GridSquare(3, rewardsTerminal, false, x, y); // rewardSquare
                 }
 
                 grid[y][x] = square;
@@ -57,6 +61,8 @@ public class GridWorld {
 
         if (valueIteration) {
             establishValueIterationUtilities();
+        } else {
+            establishPolicyIterationUtilites();
         }
     }
 
@@ -96,6 +102,10 @@ public class GridWorld {
 
     // Action here is defined as one gridspace to another
     public double getUtilityForAction(GridSquare original, GridSquare moveTo) {
+        if (original == null || moveTo == null) {
+            return 0;
+        }
+
         double utility = 0.8 * moveTo.utility;
         int x = original.getxPos();
         int y = original.getyPos();
@@ -125,35 +135,92 @@ public class GridWorld {
         return utility;
     }
 
+    // Calculates argmax a \in A(s) Sum_{s'} P(s' | s, a) U_{current} (s')
+    private GridSquare maxUtilityAction(GridSquare s) {
+        List<GridSquare> validNextSquares = getValidAdjacentSquares(s);
+        if (validNextSquares.size() != 0) {
+            GridSquare maxNode = validNextSquares.get(0);
+            double maxUtility = Double.NEGATIVE_INFINITY;
+
+            // For all valid directions to move, get the node with the expected max utility
+            for (GridSquare s_prime : validNextSquares) {
+                double utility = getUtilityForAction(s, s_prime);
+
+                if (utility > maxUtility) {
+                    maxNode = s_prime;
+                    maxUtility = utility;
+                }
+            }
+
+            return maxNode;
+        } else {
+            return null;
+        }
+    }
+
+    private double maxUtility(GridSquare s) {
+        GridSquare maxAction = maxUtilityAction(s);
+
+        if (maxAction != null) {
+            return maxAction.utility;
+        } else {
+            return 0;
+        }
+    }
 
     private void establishValueIterationUtilities() {
         for (int i = 0; i < NUM_ITERATIONS; i++) {
             for (int y = 0; y < 6; y++) {
                 for (int x = 0; x < 6; x++) {
                     GridSquare currentSquare = get(x, y);
-
-                    // Update the utility
-                    List<GridSquare> validNextSquares = getValidAdjacentSquares(currentSquare);
-                    if (validNextSquares.size() != 0) {
-                        double maxUtility = Double.NEGATIVE_INFINITY;
-
-                        for (GridSquare square : validNextSquares) {
-                            double utility = getUtilityForAction(get(x,y), square);
-                            maxUtility = utility > maxUtility ? utility : maxUtility;
-                        }
-
-                        currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR*maxUtility;
-                    } else {
-                        currentSquare.utility = currentSquare.getReward();
-                    }
+                    currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);
                 }
             }
         }
     }
 
-    public static void main(String[] args) {
+    private void policyEvaluation() {
+        for (int y = 0; y < 6; y++) {
+            for (int x = 0; x < 6; x++) {
+                GridSquare currentSquare = get(x, y);
+                currentSquare.utility = currentSquare.getReward() +
+                        DISCOUNT_FACTOR * getUtilityForAction(currentSquare, policy[y][x]);
+            }
+        }
+    }
+
+    private void policyImprovement() {
+        for (int y = 0; y < 6; y++) {
+            for (int x = 0; x < 6; x++) {
+                policy[y][x] = maxUtilityAction(get(x, y));
+            }
+        }
+    }
+
+    private void establishPolicyIterationUtilites() {
+        // Setup initial policy (always go to first in adjacent list)
+        for (int y = 0; y < 6; y++) {
+            for (int x = 0; x < 6; x++) {
+                GridSquare currentSquare = get(x, y);
+                List<GridSquare> validAdjacentSquares = getValidAdjacentSquares(currentSquare);
+
+                if (validAdjacentSquares.size() == 0 ) {
+                    policy[y][x] = null;
+                } else {
+                    policy[y][x] = getValidAdjacentSquares(currentSquare).get(0);
+                }
+            }
+        }
+
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
+            policyEvaluation();
+            policyImprovement();
+        }
+    }
+
+        public static void main(String[] args) {
         // Terminal rewards with value iteration
-        GridWorld world = new GridWorld(true, true);
+        GridWorld world = new GridWorld(false, false);
         DrawingBoard d = new DrawingBoard(world);
         d.drawCurrentBoardState();
     }
