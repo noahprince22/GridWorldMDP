@@ -4,56 +4,57 @@ import java.util.List;
 public class GridWorld {
     // Globals
     public static int NUM_ITERATIONS = 50;
-    public static double DISCOUNT_FACTOR = .99;
+    public static double DISCOUNT_FACTOR = .7; // Rodney: Once matching MP4's results, change this to 0.99
 
+    public int rows = 6;
+    public int columns = 6;
+    
     private GridSquare start;
     private GridSquare grid[][];
 
-    // Note that nodes are considered actions. A node we will move to is indicative of the action we are trying
-    //  to take.
-    private GridSquare policy[][]; // The node we will attempt to move from from node at x, y
+    // Nodes are considered actions. A node we will move to is indicative of the action we are trying to take
+    private GridSquare policy[][];
 
     public GridSquare[][] getGridWorld() {
         return grid;
     }
 
-
     public GridSquare getStartingSquare() {
         return start;
     }
 
-
-    public GridSquare get(int x, int y) {
+    public GridSquare getGridSquare(int x, int y) {
+    	if (x < 0 || y < 0 || x >= columns || y >= rows)
+    		return null;
         return grid[y][x];
     }
 
     // Constructs the gridworld as defined in the mp
     public GridWorld(boolean rewardsTerminal, boolean valueIteration) {
-        grid = new GridSquare[6][6];
-        policy = new GridSquare[6][6];
+        grid = new GridSquare[rows][columns];
+        policy = new GridSquare[rows][columns];
 
-        for (int y = 0; y < 6; y++) {
-            for (int x = 0; x < 6; x++) {
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
 
                 // Setting up the walls, rewards, and negative rewards.
-                GridSquare square = new GridSquare(-0.04, false, false, x, y); // default to -.04 square
                 if (x == 1 && y == 0) {
-                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
-                } else if (x == 3 && ((y >= 1 && y <= 3) || y == 5)) { // y 1-3 and 5, all walls
-                    square = new GridSquare(0, false, true, x, y); // wall
+                	grid[y][x] = new GridSquare(-1, rewardsTerminal, false, x, y); // rewardSquare
+                } else if (x == 3 && ((y >= 1 && y <= 3) || y == 5)) {
+                	grid[y][x] = new GridSquare(0, false, true, x, y); // walls
                 } else if (x == 0 && y == 5) {
-                    square = new GridSquare(1, rewardsTerminal, false, x, y); // rewardSquare
+                	grid[y][x] = new GridSquare(1, rewardsTerminal, false, x, y); // rewardSquare
                 } else if (x == 1 && y == 5) {
-                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
+                	grid[y][x] = new GridSquare(-1, rewardsTerminal, false, x, y); // rewardSquare
                 } else if (x == 4 && y == 1) {
-                    square = new GridSquare(-1, rewardsTerminal, false, x, y); // - rewardSquare
+                	grid[y][x] = new GridSquare(-1, rewardsTerminal, false, x, y); // rewardSquare
                 } else if ((x == 4 || x == 5) && y == 5) {
-                    square = new GridSquare(0, false, true, x, y); // wall
+                	grid[y][x] = new GridSquare(-1, rewardsTerminal, false, x, y); // rewardSquares
                 } else if (x == 5 && y == 2) {
-                    square = new GridSquare(3, rewardsTerminal, false, x, y); // rewardSquare
+                	grid[y][x] = new GridSquare(3, rewardsTerminal, false, x, y); // rewardSquare
+                } else {
+                	grid[y][x] = new GridSquare(-0.04, false, false, x, y); // default to -.04 square
                 }
-
-                grid[y][x] = square;
             }
         }
 
@@ -66,8 +67,13 @@ public class GridWorld {
         }
     }
 
+    /* Rodney: TRYING to move into walls is actually a valid move. I updated this to reflect that */
     private boolean isValidLocation(int x, int y) {
-        return  x > 0 && y > 0 && x < 6 && y < 6 && !get(x, y).isWall();
+        return x >= 0 && y >= 0 && x < columns && y < rows;
+    }
+    
+    private boolean isValidLocation(GridSquare square){
+    	return (square != null) && (isValidLocation(square.getxPos(), square.getyPos()));
     }
 
     // A list of adjacent grids and their respective direction
@@ -80,55 +86,81 @@ public class GridWorld {
             return validActions;
         }
 
-        if (isValidLocation(x+1, y)) {
-            validActions.add(get(x+1, y));
+        GridSquare leftSquare  = getGridSquare(x - 1, y);
+        GridSquare rightSquare = getGridSquare(x + 1, y);
+        GridSquare downSquare  = getGridSquare(x, y - 1);
+        GridSquare upSquare    = getGridSquare(x, y + 1);
+
+        if (isValidLocation(leftSquare)) {
+        	validActions.add(leftSquare);
         }
-
-        if (isValidLocation(x-1, y)) {
-            validActions.add(get(x-1,y));
+        
+        if (isValidLocation(rightSquare)) {
+        	validActions.add(rightSquare);
         }
-
-
-        if (isValidLocation(x, y+1)) {
-            validActions.add(get(x,y+1));
+        
+        if (isValidLocation(downSquare)) {
+        	validActions.add(downSquare);
         }
-
-        if (isValidLocation(x, y-1)) {
-            validActions.add(get(x,y-1));
+        
+        if (isValidLocation(upSquare)) {
+        	validActions.add(upSquare);
         }
 
         return validActions;
     }
 
+    /* Rodney: I updated this function so that it deals with attempts to move into walls properly.
+     *  "If the move would make the agent walk into a wall, the agent stays in the same place as before." */
     // Action here is defined as one gridspace to another
     public double getUtilityForAction(GridSquare original, GridSquare moveTo) {
         if (original == null || moveTo == null) {
             return 0;
         }
 
-        double utility = 0.8 * moveTo.utility;
+        double utility;
+        
         int x = original.getxPos();
         int y = original.getyPos();
+        
+        GridSquare leftSquare  = getGridSquare(x - 1, y);
+        GridSquare rightSquare = getGridSquare(x + 1, y);
+        GridSquare downSquare  = getGridSquare(x, y - 1);
+        GridSquare upSquare    = getGridSquare(x, y + 1);
+        
+        if (isValidLocation(moveTo) && ! moveTo.isWall())
+        	utility = 0.8 * moveTo.utility;
+        else
+        	utility = 0.8 * original.utility; // agent stays in same place as before.
 
-        // Must include left/right
-        if (moveTo.getxPos() == get(x,y).getxPos()) {
-            if (isValidLocation(x - 1 , y)) {
-                utility+= 0.1*get(x - 1, y).utility;
+        if (moveTo.getxPos() == original.getxPos()) { // intended movement is vertical
+            if (isValidLocation(leftSquare) && ! leftSquare.isWall()) {
+                utility += 0.1 * leftSquare.utility;
+            }
+            else {
+            	utility += 0.1 * original.utility; // agent stays in same place as before.
             }
 
-            if (isValidLocation(x + 1 , y)) {
-                utility+= 0.1*get(x + 1, y).utility;
+            if (isValidLocation(rightSquare) && ! rightSquare.isWall()) {
+                utility += 0.1 * rightSquare.utility;
+            }
+            else {
+            	utility += 0.1 * original.utility; // agent stays in same place as before.
             }
         }
-
-        // Must include up/down
-        if (moveTo.getyPos() == get(x,y).getyPos()) {
-            if (isValidLocation(x , y - 1)) {
-                utility+= 0.1*get(x, y - 1).utility;
+        else { // intended movement is horizontal
+            if (isValidLocation(upSquare) && ! upSquare.isWall()) {
+                utility += 0.1 * upSquare.utility;
             }
-
-            if (isValidLocation(x , y + 1)) {
-                utility+= 0.1*get(x, y + 1).utility;
+            else {
+            	utility += 0.1 * original.utility; // agent stays in same place as before.
+            }
+            
+            if (isValidLocation(downSquare) && ! downSquare.isWall()) {
+                utility += 0.1 * downSquare.utility;
+            }
+            else {
+            	utility += 0.1 * original.utility; // agent stays in same place as before.
             }
         }
 
@@ -170,19 +202,20 @@ public class GridWorld {
 
     private void establishValueIterationUtilities() {
         for (int i = 0; i < NUM_ITERATIONS; i++) {
-            for (int y = 0; y < 6; y++) {
-                for (int x = 0; x < 6; x++) {
-                    GridSquare currentSquare = get(x, y);
-                    currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < columns; x++) {
+                    GridSquare currentSquare = getGridSquare(x, y);
+                    if ( ! currentSquare.isWall())
+                    	currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);
                 }
             }
         }
     }
 
     private void policyEvaluation() {
-        for (int y = 0; y < 6; y++) {
-            for (int x = 0; x < 6; x++) {
-                GridSquare currentSquare = get(x, y);
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                GridSquare currentSquare = getGridSquare(x, y);
                 currentSquare.utility = currentSquare.getReward() +
                         DISCOUNT_FACTOR * getUtilityForAction(currentSquare, policy[y][x]);
             }
@@ -190,18 +223,18 @@ public class GridWorld {
     }
 
     private void policyImprovement() {
-        for (int y = 0; y < 6; y++) {
-            for (int x = 0; x < 6; x++) {
-                policy[y][x] = maxUtilityAction(get(x, y));
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                policy[y][x] = maxUtilityAction(getGridSquare(x, y));
             }
         }
     }
 
     private void establishPolicyIterationUtilites() {
         // Setup initial policy (always go to first in adjacent list)
-        for (int y = 0; y < 6; y++) {
-            for (int x = 0; x < 6; x++) {
-                GridSquare currentSquare = get(x, y);
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                GridSquare currentSquare = getGridSquare(x, y);
                 List<GridSquare> validAdjacentSquares = getValidAdjacentSquares(currentSquare);
 
                 if (validAdjacentSquares.size() == 0 ) {
@@ -218,9 +251,8 @@ public class GridWorld {
         }
     }
 
-        public static void main(String[] args) {
-        // Terminal rewards with value iteration
-        GridWorld world = new GridWorld(false, false);
+    public static void main(String[] args) {
+        GridWorld world = new GridWorld(true, true);
         DrawingBoard d = new DrawingBoard(world);
         d.drawCurrentBoardState();
     }

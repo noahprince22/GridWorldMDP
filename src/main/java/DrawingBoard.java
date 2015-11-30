@@ -13,14 +13,11 @@ public class DrawingBoard {
 
     private Font valueFont;
 
-    /**
-     * constructor
-     * @param state
-     */
+    /** Constructor */
     DrawingBoard(GridWorld grid){
         gridWorld = grid;
-        this.numRows = 6;
-        this.numCols = 6;
+        this.numRows = grid.rows;
+        this.numCols = grid.columns;
         createCanvas();
 
         int style = Font.BOLD | Font.ITALIC;
@@ -53,7 +50,7 @@ public class DrawingBoard {
     private void drawGridSpace(int row, int col){
         StdDraw.setPenRadius();
 
-        GridSquare square = gridWorld.get(col, row);
+        GridSquare square = gridWorld.getGridSquare(col, row);
         if (square.isWall()) {
             StdDraw.setPenColor(StdDraw.GRAY);
         } else if (square.getReward() == -0.04) {
@@ -80,11 +77,11 @@ public class DrawingBoard {
     private void drawSingleGridSpaceValue(int row, int col) {
         StdDraw.setFont(this.valueFont);
         StdDraw.setPenColor(StdDraw.BLACK);
-        double value = this.gridWorld.get(col, row).utility;
+        double value = this.gridWorld.getGridSquare(col, row).utility;
         DecimalFormat df = new DecimalFormat("#.00");
         String val = df.format(value);
 
-        GridSquare square = gridWorld.get(col, row);
+        GridSquare square = gridWorld.getGridSquare(col, row);
         if (square.isWall()) {
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, "WALL");
         } else if (square == gridWorld.getStartingSquare()){

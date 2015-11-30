@@ -1,14 +1,23 @@
 public class GridSquare {
 
+    private double reward;
     private boolean terminal;
+    private boolean wall;
     private int xPos;
     private int yPos;
-    private double reward;
-    private boolean wall;
 
     public double utility;
 
-
+    public GridSquare(double reward, boolean terminal, boolean wall, int x, int y) {
+        this.terminal = terminal;
+        this.reward = reward;
+        this.xPos = x;
+        this.yPos = y;
+        this.wall = wall;
+        
+        this.utility = 0;
+    }
+    
     public boolean isTerminal() {
         return terminal;
     }
@@ -27,14 +36,5 @@ public class GridSquare {
 
     public boolean isWall() {
         return wall;
-    }
-
-    public GridSquare(double reward, boolean terminal, boolean wall,  int x, int y) {
-        this.terminal = terminal;
-        this.reward = reward;
-        this.xPos = x;
-        this.yPos = y;
-        this.wall = wall;
-        this.utility = 0;
     }
 }
