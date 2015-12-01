@@ -24,7 +24,7 @@ public class GridWorld {
     }
 
     public GridSquare getGridSquare(int x, int y) {
-    	if (x < 0 || y < 0 || x >= columns || y >= rows)
+    	if (!isValidLocation(x, y))
     		return null;
         return grid[y][x];
     }
@@ -61,7 +61,7 @@ public class GridWorld {
         start = grid[3][1];
 
         if (valueIteration) {
-            establishValueIterationUtilities();
+            establishValueIterationUtilitiesVERSION2();
         } else {
             establishPolicyIterationUtilites();
         }
@@ -199,19 +199,40 @@ public class GridWorld {
             return 0;
         }
     }
-
+    
     private void establishValueIterationUtilities() {
         for (int i = 0; i < NUM_ITERATIONS; i++) {
             for (int y = 0; y < rows; y++) {
                 for (int x = 0; x < columns; x++) {
                     GridSquare currentSquare = getGridSquare(x, y);
                     if ( ! currentSquare.isWall())
-                    	currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);
+                    	currentSquare.utility = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);                   
                 }
             }
         }
     }
 
+    /* Other version of "Value Iteration". We must not write the utilities to cells until all 36 are calculated */
+    private void establishValueIterationUtilitiesVERSION2() {
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
+        	double utilities[][] = new double[rows][columns];
+        	/* 1st calculate all the utilities before writing to the cells */
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < columns; x++) {
+                    GridSquare currentSquare = getGridSquare(x, y);
+                    if ( ! currentSquare.isWall())
+                    	utilities[y][x] = currentSquare.getReward() + DISCOUNT_FACTOR * maxUtility(currentSquare);                    
+                }
+            }
+            /* Now we can copy the utilities */
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < columns; x++) {
+                	grid[y][x].utility = utilities[y][x];
+                }
+            }
+        }
+    }
+    
     private void policyEvaluation() {
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
