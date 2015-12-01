@@ -78,7 +78,7 @@ public class DrawingBoard {
         StdDraw.setFont(this.valueFont);
         StdDraw.setPenColor(StdDraw.BLACK);
         double value = this.gridWorld.getGridSquare(col, row).utility;
-        DecimalFormat df = new DecimalFormat("#.00");
+        DecimalFormat df = new DecimalFormat("#.####");
         String val = df.format(value);
 
         GridSquare square = gridWorld.getGridSquare(col, row);
