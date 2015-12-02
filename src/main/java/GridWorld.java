@@ -4,7 +4,7 @@ import java.util.List;
 public class GridWorld {
     // Globals
     public static int NUM_ITERATIONS = 50;
-    public static double DISCOUNT_FACTOR = .7; // Rodney: Once matching MP4's results, can change this to 0.99
+    public static double DISCOUNT_FACTOR = .7; // Once matching MP4's results, can change this to 0.99
 
     public int rows = 6;
     public int columns = 6;
@@ -63,11 +63,11 @@ public class GridWorld {
         if (valueIteration) {
             establishValueIterationUtilities();
         } else {
-            ;//establishPolicyIterationUtilites();
+            establishPolicyIterationUtilites();
         }
     }
 
-    /* Rodney: TRYING to move into walls is actually a valid move. I updated this to reflect that */
+    /* Trying to move into walls is actually a valid move. */
     private boolean isValidLocation(int x, int y) {
         return x >= 0 && y >= 0 && x < columns && y < rows;
     }
@@ -118,8 +118,6 @@ public class GridWorld {
         return validActions;
     }
 
-    /* Rodney: I updated this function so that it deals with attempts to move into walls properly.
-     *  "If the move would make the agent walk into a wall, the agent stays in the same place as before." */
     // Action here is defined as one gridspace to another
     public double getUtilityForAction(GridSquare original, GridSquare moveTo) {
         if (original == null || moveTo == null) {
@@ -229,47 +227,55 @@ public class GridWorld {
         }
     }
     
-//    private void policyEvaluation() {
-//        for (int y = 0; y < rows; y++) {
-//            for (int x = 0; x < columns; x++) {
-//                GridSquare currentSquare = getGridSquare(x, y);
-//                currentSquare.utility = currentSquare.getReward() +
-//                        DISCOUNT_FACTOR * getUtilityForAction(currentSquare, policy[y][x]);
-//            }
-//        }
-//    }
-//
-//    private void policyImprovement() {
-//        for (int y = 0; y < rows; y++) {
-//            for (int x = 0; x < columns; x++) {
-//                policy[y][x] = maxUtilityAction(getGridSquare(x, y));
-//            }
-//        }
-//    }
-//
-//    private void establishPolicyIterationUtilites() {
-//        // Setup initial policy (always go to first in adjacent list)
-//        for (int y = 0; y < rows; y++) {
-//            for (int x = 0; x < columns; x++) {
-//                GridSquare currentSquare = getGridSquare(x, y);
-//                List<GridSquare> validAdjacentSquares = getValidAdjacentSquares(currentSquare);
-//
-//                if (validAdjacentSquares.size() == 0 ) {
-//                    policy[y][x] = null;
-//                } else {
-//                    policy[y][x] = getValidAdjacentSquares(currentSquare).get(0);
-//                }
-//            }
-//        }
-//
-//        for (int i = 0; i < NUM_ITERATIONS; i++) {
-//            policyEvaluation();
-//            policyImprovement();
-//        }
-//    }
+    private void policyEvaluation() {
+    	double utilities[][] = new double[rows][columns];
+    	/* 1st calculate all the utilities before writing to the cells */
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                GridSquare currentSquare = getGridSquare(x, y);
+                if ( ! currentSquare.isWall())
+                	utilities[y][x] = currentSquare.getReward() + DISCOUNT_FACTOR * getUtilityForAction(currentSquare, policy[y][x]);
+            }
+        }
+        /* Now we can copy the utilities */
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+            	grid[y][x].utility = utilities[y][x];
+            }
+        }
+    }
+
+    private void policyImprovement() {
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                policy[y][x] = maxUtilityAction(getGridSquare(x, y));
+            }
+        }
+    }
+
+    private void establishPolicyIterationUtilites() {
+        // Setup initial policy (always go to first in adjacent list)
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                GridSquare currentSquare = getGridSquare(x, y);
+                List<GridSquare> validAdjacentSquares = getValidAdjacentSquares(currentSquare);
+
+                if (validAdjacentSquares.size() == 0 ) {
+                    policy[y][x] = null;
+                } else {
+                    policy[y][x] = validAdjacentSquares.get(0); // policy starts off with all left-pointing arrows
+                }
+            }
+        }
+
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
+            policyEvaluation();
+            policyImprovement();
+        }
+    }
 
     public static void main(String[] args) {
-        GridWorld world = new GridWorld(true, true);
+        GridWorld world = new GridWorld(true, false);
         DrawingBoard d = new DrawingBoard(world);
         d.drawCurrentBoardState();
     }
