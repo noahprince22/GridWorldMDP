@@ -1,9 +1,8 @@
-import java.awt.Color;
+package onePoint1;
+
+//import java.awt.Color;
 import java.awt.Font;
 import java.text.DecimalFormat;
-
-//import java.awt.color.*;
-
 
 public class DrawingBoard {
     private int numRows;
@@ -14,7 +13,7 @@ public class DrawingBoard {
     private Font valueFont;
 
     /** Constructor */
-    DrawingBoard(GridWorld grid){
+    public DrawingBoard(GridWorld grid){
         gridWorld = grid;
         this.numRows = grid.rows;
         this.numCols = grid.columns;
@@ -59,7 +58,7 @@ public class DrawingBoard {
             StdDraw.setPenColor(StdDraw.ORANGE);
         } else if (square.getReward() > 0) {
             StdDraw.setPenColor(StdDraw.GREEN);
-        } else if (square == gridWorld.getStartingSquare()){
+        } else if (square == gridWorld.start){
             StdDraw.setPenColor(StdDraw.RED);
         }
 
@@ -84,7 +83,7 @@ public class DrawingBoard {
         GridSquare square = gridWorld.getGridSquare(col, row);
         if (square.isWall()) {
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, "WALL");
-        } else if (square == gridWorld.getStartingSquare()){
+        } else if (square == gridWorld.start){
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, "START");
         } else {
             StdDraw.text(col+0.5, (this.numRows-1-row)+0.5, ""+ val);
@@ -99,11 +98,11 @@ public class DrawingBoard {
         }
     }
 
-    private void drawColoredCircle(int row, int col, Color playerColor){
-        StdDraw.setPenRadius();
-        StdDraw.setPenColor(playerColor);
-        StdDraw.filledCircle(col+0.5, (this.numRows-1-row)+0.5, .45 );
-    }
+//    private void drawColoredCircle(int row, int col, Color playerColor){
+//        StdDraw.setPenRadius();
+//        StdDraw.setPenColor(playerColor);
+//        StdDraw.filledCircle(col+0.5, (this.numRows-1-row)+0.5, .45 );
+//    }
 
 
     /**
@@ -123,11 +122,4 @@ public class DrawingBoard {
     public void saveImage(String filename) {
         StdDraw.save(filename);
     }
-
-
-    public static void main(String[] args) {
-
-    }
-
-
 }

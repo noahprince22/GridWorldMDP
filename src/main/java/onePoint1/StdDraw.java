@@ -1,3 +1,4 @@
+package onePoint1;
 /*************************************************************************
  *  Compilation:  javac StdDraw.java
  *  Execution:    java StdDraw
