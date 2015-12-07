@@ -82,4 +82,15 @@ public class GridSquare {
 		else
 			return Direction.DOWN;
 	}
+	
+	public Direction leastTriedDirection(){
+		if (actionCounterLeft < Math.min(actionCounterRight, Math.min(actionCounterUp, actionCounterDown)))
+			return Direction.LEFT;
+		else if (actionCounterRight < Math.min(actionCounterUp, actionCounterDown))
+			return Direction.RIGHT;
+		else if (actionCounterUp < actionCounterDown)
+			return Direction.UP;
+		else
+			return Direction.DOWN;
+	}
 }
