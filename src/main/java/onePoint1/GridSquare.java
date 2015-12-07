@@ -1,7 +1,5 @@
 package onePoint1;
 
-import onePoint2.Direction;
-
 public class GridSquare {
 
     private double reward;

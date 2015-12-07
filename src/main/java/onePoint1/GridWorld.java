@@ -15,12 +15,7 @@ public class GridWorld {
 
     // Nodes are considered actions. A node we will move to is indicative of the action we are trying to take
     public GridSquare policy[][];
-
-    public GridSquare getGridSquare(int x, int y) {
-    	if (!isValidLocation(x, y))
-    		return null;
-        return grid[y][x];
-    }
+    public Direction directionPolicy[][];
 
     /* Constructor: Constructs the GridWorld as defined in the MP4 Specification */
     public GridWorld(boolean rewardsTerminal, int iterations, double discountFactor) {
@@ -29,6 +24,7 @@ public class GridWorld {
     	
         grid = new GridSquare[rows][columns];
         policy = new GridSquare[rows][columns];
+        directionPolicy = new Direction[rows][columns];
         
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
@@ -55,6 +51,27 @@ public class GridWorld {
         start = grid[3][1];
     }
 
+    public Direction getDirection(int row, int column, GridSquare destination){
+    	if (destination == null)
+    		return null;
+	  	if (column - 1 == destination.getxPos())
+	  		return Direction.LEFT;
+	  	else if (column + 1 == destination.getxPos())
+	  		return Direction.RIGHT;
+	  	else if (row + 1 == destination.getyPos())
+	  		return Direction.DOWN;
+	  	else if (row - 1 == destination.getyPos())
+	  		return Direction.UP;
+	  	return null; // should never execute
+	}
+    
+    
+    public GridSquare getGridSquare(int x, int y) {
+    	if (!isValidLocation(x, y))
+    		return null;
+        return grid[y][x];
+    }
+    
     /* Trying to move into walls is actually a valid move. */
     public boolean isValidLocation(int x, int y) {
         return x >= 0 && y >= 0 && x < columns && y < rows;
@@ -194,6 +211,9 @@ public class GridWorld {
                 }
             }
         }
+        
+        policyImprovement();
+        generateDirectionPolicy();
     }
     
     public void policyEvaluation() {
@@ -240,5 +260,28 @@ public class GridWorld {
             policyEvaluation();
             policyImprovement();
         }
+        generateDirectionPolicy();
     }
+    
+    /* Used to draw arrows for policy */
+    public void generateDirectionPolicy(){
+    	for (int row = 0; row < rows; row++){
+    		for (int col = 0; col < columns; col++){
+    			directionPolicy[row][col] = getDirection(row, col, policy[row][col]);
+    		}
+    	}
+    }
+    
+    /* Added for RMSE (for 1.1 and 1.2) */
+    public double sumOfUtilities(){
+    	double sum = 0;
+    	for (int row = 0; row < rows; row++){
+    		for (int col = 0; col < columns; col++){
+    			sum += grid[row][col].utility;
+    		}
+    	}
+    	return sum;
+    }
+    
+
 }

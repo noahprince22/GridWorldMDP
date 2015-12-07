@@ -1,31 +1,18 @@
 package onePoint2;
 
+import onePoint1.Direction;
 import onePoint1.GridSquare;
 import onePoint1.GridWorld;
 
 public class GridWorld_Q extends GridWorld{
 	
 	int threshold;
-	int t;
-	double alpha; // learning rate
-	int numTrials;
+	GridSquare[][] solutionGrid;
 	
-	public GridWorld_Q(boolean rewardsTerminal, int iterations, double discountFactor, int threshold) {
+	public GridWorld_Q(boolean rewardsTerminal, int iterations, double discountFactor, int threshold, GridSquare[][] solutionGrid) {
 		super(rewardsTerminal, iterations, discountFactor);
 		this.threshold = threshold;
-		t = 0;
-		updateAlpha();
-		numTrials = 0;
-
-		/* Piazza @476: Utility for terminal states should be reward values */
-		// Are these necessary?
-//		grid[0][1].utility = -1;
-//		grid[1][4].utility = -1;
-//		grid[5][1].utility = -1;
-//		grid[5][4].utility = -1;
-//		grid[5][5].utility = -1;
-//		grid[2][5].utility = 3;
-//		grid[5][0].utility = 1;
+		this.solutionGrid = solutionGrid;
 	}
 	
 	public boolean notConverged(){
@@ -36,7 +23,7 @@ public class GridWorld_Q extends GridWorld{
 	/* Lecture 17 Slide 20 has pseudocode. Piazza @528 has more detailed pseudocode */
     public void establish_Q_Utilities() {
     	//while(notConverged()){ // can try this instead of the for loop line below
-    	for (int i = 0; i < 500000; i++){
+    	for (int i = 1; i <= numIterations; i++){
 	    	GridSquare currentState = start;
 	    	GridSquare intendedSuccessorState = null;
 	    	GridSquare actualSuccessorState = null;
@@ -52,8 +39,10 @@ public class GridWorld_Q extends GridWorld{
 		       	updateOtherVariables(currentState, intendedDirection);
 		    	currentState = actualSuccessorState;
 	    	}
-	    	numTrials++;
     	}
+    	
+        policyImprovement();
+        generateDirectionPolicy();
     }
     
     //select an action that yields the maximum return value of the exploration 
@@ -77,16 +66,22 @@ public class GridWorld_Q extends GridWorld{
 		if ( ! isValidLocation(upSquare))
 			upSquare = new GridSquare(0, true, true, x, y - 1); // off of Grid
 		
-		/* Explore: will always try each direction at least "threshold" number of times. 
-		 * No need for R+ */
-		if (N(currentState, Direction.LEFT) < threshold)
-			return leftSquare;
-		else if (N(currentState, Direction.RIGHT) < threshold)
-			return rightSquare;
-		else if (N(currentState, Direction.DOWN) < threshold)
-			return downSquare;
-		else if (N(currentState, Direction.UP) < threshold)
-			return upSquare;
+		/* Explore: will always try each direction at least "threshold" number of times. No Need for R+ */
+		if (needToExplore(currentState)){
+			Direction leastTriedDir = currentState.leastTriedDirection();
+	    	switch(leastTriedDir){
+		    	case LEFT:
+		    		return leftSquare;
+		    	case RIGHT:
+		    		return rightSquare;
+		    	case DOWN:
+		    		return downSquare;
+		    	case UP:
+		    		return upSquare;
+		    	default: 
+		    		return null;//should never execute
+	    	}
+		}
 		
 		/* Exploit */
 		Direction dir = currentState.highestUtilityDirection();
@@ -160,13 +155,13 @@ public class GridWorld_Q extends GridWorld{
     /* Formula from bottom of Lecture 17, Slide 20 */
     private void TD_Update(GridSquare currentState, GridSquare successorState, Direction dir){ //also updates N(s, a')
     	if (dir == Direction.LEFT)
-    		currentState.qValueLeft += alpha * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueLeft);
+    		currentState.qValueLeft += getAlphaTiedToQ(currentState, dir) * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueLeft);
     	else if (dir == Direction.RIGHT)
-    		currentState.qValueRight += alpha * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueRight);
+    		currentState.qValueRight += getAlphaTiedToQ(currentState, dir) * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueRight);
     	else if (dir == Direction.DOWN)
-    		currentState.qValueDown += alpha * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueDown);
+    		currentState.qValueDown += getAlphaTiedToQ(currentState, dir) * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueDown);
     	else if (dir == Direction.UP)
-    		currentState.qValueUp += alpha * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueUp);
+    		currentState.qValueUp += getAlphaTiedToQ(currentState, dir) * (currentState.getReward() + (discountFactor * successorState.utility) - currentState.qValueUp);
     }
     
     private void updateOtherVariables(GridSquare currentState, Direction dir){
@@ -181,14 +176,22 @@ public class GridWorld_Q extends GridWorld{
     		currentState.actionCounterUp++;
     	
        	currentState.updateUtility();
-    	updateAlpha();
     }
     
-    public void updateAlpha(){
-    	t++;
-		alpha = (double) 60 / (59 + t);
-    	//alpha = (double) 600 / (599 + t);
-    	//alpha = (double) 6000 / (5999 + t);
+    /* Lecture Slides are incorrect. "t" should be tied to Q (confirmed by TA) */
+    public double getAlphaTiedToQ(GridSquare currentState, Direction dir){
+    	int t = 0;
+    	if (dir == Direction.LEFT)
+    		t = currentState.actionCounterLeft;
+    	else if (dir == Direction.RIGHT)
+    		t = currentState.actionCounterRight;
+    	else if (dir == Direction.DOWN)
+    		t = currentState.actionCounterDown;
+    	else if (dir == Direction.UP)
+    		t = currentState.actionCounterUp;
+    	//return (double) 60 / (59 + t);
+    	//return (double) 600 / (599 + t);
+    	return (double) 6000 / (5999 + t);
     }
     
     /* Returns number of times we've chosen a given direction from the current state
@@ -204,8 +207,8 @@ public class GridWorld_Q extends GridWorld{
     		return currentState.actionCounterUp;
     	return -1; // should never execute
  	}
-  
-	public Direction getDirection(GridSquare origin, GridSquare destination){
+	
+    public Direction getDirection(GridSquare origin, GridSquare destination){
 	  	if (origin.getxPos() - 1 == destination.getxPos())
 	  		return Direction.LEFT;
 	  	else if (origin.getxPos() + 1 == destination.getxPos())
@@ -216,6 +219,19 @@ public class GridWorld_Q extends GridWorld{
 	  		return Direction.UP;
 	  	return null; // should never execute
 	}
+	
+	public boolean needToExplore(GridSquare currentState){
+		return (N(currentState, Direction.LEFT) < threshold || N(currentState, Direction.RIGHT) < threshold
+		     || N(currentState, Direction.DOWN) < threshold || N(currentState, Direction.UP) < threshold);
+	}
+	
+	public double RMSE(){
+		double sum = 0;
+		for (int row = 0; row < rows; row++){
+			for (int col = 0; col < columns; col++){
+				sum += Math.pow(grid[row][col].utility - solutionGrid[row][col].utility, 2);
+			}
+		}
+		return Math.sqrt((double) (sum) / numIterations);
+	}
 }
-
-
