@@ -12,15 +12,17 @@ public class GridSquare {
     public double utility;
 
     /* Added for part 1.2 */
-	public double utilityLeft;
-	public double utilityRight;
-	public double utilityUp;
-	public double utilityDown;
+    //q values for the 4 possible actions
+	public double qValueLeft;
+	public double qValueRight;
+	public double qValueUp;
+	public double qValueDown;
 	
-	public int triedLeft;
-	public int triedRight;
-	public int triedUp;
-	public int triedDown;
+	//counters for the number of times a given action has been taken
+	public int actionCounterLeft;
+	public int actionCounterRight;
+	public int actionCounterUp;
+	public int actionCounterDown;
 	
     public GridSquare(double reward, boolean terminal, boolean wall, int x, int y) {
         this.terminal = terminal;
@@ -31,16 +33,15 @@ public class GridSquare {
         this.utility = 0;
         
         /* For part 1.2 */
-    	this.utilityLeft = 0;
-    	this.utilityRight = 0;
-    	this.utilityUp = 0;
-    	this.utilityDown = 0;
+    	this.qValueLeft = 0;
+    	this.qValueRight = 0;
+    	this.qValueUp = 0;
+    	this.qValueDown = 0;
     	
-    	this.triedLeft = 0;
-    	this.triedRight = 0;
-    	this.triedUp = 0;
-    	this.triedDown = 0;
-    	
+    	this.actionCounterLeft = 0;
+    	this.actionCounterRight = 0;
+    	this.actionCounterUp = 0;
+    	this.actionCounterDown = 0;
     }
     
     public boolean isTerminal() {
@@ -68,15 +69,15 @@ public class GridSquare {
     /**********************/
     
 	public void updateUtility(){
-		utility = Math.max(utilityLeft, Math.max(utilityRight, Math.max(utilityUp, utilityDown)));
+		utility = Math.max(qValueLeft, Math.max(qValueRight, Math.max(qValueUp, qValueDown)));
 	}
 	
 	public Direction highestUtilityDirection(){
-		if (utilityLeft > Math.max(utilityRight, Math.max(utilityUp, utilityDown)))
+		if (qValueLeft > Math.max(qValueRight, Math.max(qValueUp, qValueDown)))
 			return Direction.LEFT;
-		else if (utilityRight > Math.max(utilityUp, utilityDown))
+		else if (qValueRight > Math.max(qValueUp, qValueDown))
 			return Direction.RIGHT;
-		else if (utilityUp > utilityDown)
+		else if (qValueUp > qValueDown)
 			return Direction.UP;
 		else
 			return Direction.DOWN;
