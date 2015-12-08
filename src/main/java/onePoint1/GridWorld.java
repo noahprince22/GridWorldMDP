@@ -1,11 +1,22 @@
 package onePoint1;
+import javafx.util.Pair;
+import org.math.plot.Plot2DPanel;
+import org.math.plot.plots.ScatterPlot;
+import sun.beans.editors.DoubleEditor;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /* Important: (0, 0) is the TOP-LEFT corner of grid */
-public class GridWorld {
+public class GridWorld extends JFrame{
     public int numIterations;
     public double discountFactor;
+
+    private double [][][] plotPoints;
 
     public int rows = 6;
     public int columns = 6;
@@ -21,6 +32,8 @@ public class GridWorld {
     public GridWorld(boolean rewardsTerminal, int iterations, double discountFactor) {
     	this.numIterations = iterations;
     	this.discountFactor = discountFactor;
+
+        plotPoints = new double[rows][columns][numIterations+1];
     	
         grid = new GridSquare[rows][columns];
         policy = new GridSquare[rows][columns];
@@ -192,6 +205,58 @@ public class GridWorld {
             return 0;
     }
 
+    void addUtilitiesToPlot(int i, double utilities[][]) {
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                plotPoints[y][x][i] = utilities[y][x];
+            }
+        }
+    }
+
+    public Color[] generateColors(int n)
+    {
+        Color[] cols = new Color[n];
+        for(int i = 0; i < n; i++)
+        {
+            cols[i] = Color.getHSBColor((float) i / (float) n, 0.85f, 1.0f);
+        }
+        return cols;
+    }
+
+    void finalizeUtilityPlot() throws IOException {
+
+        double[] xAxis;
+        xAxis = new double[numIterations];
+        for (int i = 0; i < numIterations; i++) {
+            xAxis[i] = i;
+        }
+
+
+        for (int y = 0; y < rows; y++) {
+            Color[] colors = generateColors(columns);
+            Plot2DPanel plot = new Plot2DPanel();
+
+            for (int x = 0; x < columns; x++) {
+                double[] yAxis;
+                yAxis = plotPoints[y][x];
+
+                String name = "Point ("+x+","+y+")";
+
+                plot.addScatterPlot(name, colors[x] , xAxis, yAxis);
+            }
+
+            plot.setAxisLabels("Number of Iterations", "Utility Estimates");
+
+            plot.addLegend("SOUTH");
+            JFrame frame = new JFrame("Utility Estimates vs Number of Iterations");
+            frame.setContentPane(plot);
+            frame.setVisible(true);
+            frame.setSize(600, 600);
+            plot.setSize(600, 600);
+            plot.toGraphicFile(new File(y + ".png"));
+        }
+    }
+
     /* We must not write the utilities to cells until all 36 are calculated */
     public void establishValueIterationUtilities() {
         for (int i = 1; i <= numIterations; i++) {
@@ -210,13 +275,21 @@ public class GridWorld {
                 	grid[y][x].utility = utilities[y][x];
                 }
             }
+
+            addUtilitiesToPlot(i, utilities);
         }
-        
+
+        try {
+            finalizeUtilityPlot();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
         policyImprovement();
         generateDirectionPolicy();
     }
     
-    public void policyEvaluation() {
+    public void policyEvaluation(int i) {
     	double utilities[][] = new double[rows][columns];
     	/* 1st calculate all the utilities before writing to the cells */
         for (int y = 0; y < rows; y++) {
@@ -226,6 +299,9 @@ public class GridWorld {
                 	utilities[y][x] = currentSquare.getReward() + discountFactor * getUtilityForAction(currentSquare, policy[y][x]);
             }
         }
+
+        addUtilitiesToPlot(i, utilities);
+
         /* Now we can copy the utilities */
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
@@ -257,8 +333,13 @@ public class GridWorld {
         }
 
         for (int i = 0; i < numIterations; i++) {
-            policyEvaluation();
+            policyEvaluation(i);
             policyImprovement();
+        }
+        try {
+            finalizeUtilityPlot();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         generateDirectionPolicy();
     }

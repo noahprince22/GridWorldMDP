@@ -7,11 +7,13 @@ public class Main {
 	 * Discount factor      (2nd parameter to constructor): use 0.7 to compare with instructor results. Use 0.99 for report.
 	 */
 	public static void main (String [] args){
-		//GridWorld world = new GridWorld(true, 50, 0.7); // Use one of these (Terminal States)
-        GridWorld world = new GridWorld(false, 5000, 0.7); // Use one of these (Non-Terminal States)
+		GridWorld world = new GridWorld(false, 50, 0.99); // Use one of these (Terminal States)
+        //GridWorld world = new GridWorld(false, 5000, 0.7); // Use one of these (Non-Terminal States)
         
-        world.establishValueIterationUtilities(); // Use one of these (Value Iteration)
-        //world.establishPolicyIterationUtilites(); // Use one of these (Policy Iteration)
+        //world.establishValueIterationUtilities(); // Use one of these (Value Iteration)
+        world.establishPolicyIterationUtilites(); // Use one of these (Policy Iteration)
+
+            world.setVisible(true);
         
         DrawingBoard d = new DrawingBoard(world);
         
